@@ -20,10 +20,39 @@ COMPETITIONS = {
 }
 
 def fetch_matches(page, competition=None, page_size=20):
-    """Забираем матчи за последние полгода"""
     today = datetime.today()
     date_from = (today - timedelta(days=180)).strftime("%Y-%m-%d")
     date_to = today.strftime("%Y-%m-%d")
+
+    params = {
+        "dateFrom": date_from,
+        "dateTo": date_to,
+    }
+
+    if competition:
+        url = f"https://api.football-data.org/v4/competitions/{competition}/matches"
+    else:
+        url = "https://api.football-data.org/v4/matches"
+
+    response = requests.get(url, headers=headers, params=params)
+
+    # Лог в консоль
+    print("⚽ URL:", response.url)
+    print("📦 Ответ:", response.text[:500])
+
+    if response.status_code != 200:
+        return [{"error": f"Ошибка {response.status_code}: {response.text}"}]
+
+    data = response.json()
+    matches = data.get("matches", [])
+
+    if not matches:
+        return [{"error": f"Нет матчей за период {date_from} — {date_to}. Ответ API: {response.text[:200]}"}]
+
+    # Пагинация — по 20 матчей на страницу
+    start = (page - 1) * page_size
+    end = start + page_size
+    return matches[start:end]
 
     params = {
         "dateFrom": date_from,
