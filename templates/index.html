@@ -3,29 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Футбольные матчи</title>
-    <style>
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid black; padding: 8px; text-align: center; }
-        th { background-color: #ddd; }
-    </style>
 </head>
 <body>
-    <h1>Футбольные матчи (реальные данные)</h1>
-    <table>
-        <tr>
-            <th>Домашняя</th>
-            <th>Гостевая</th>
-            <th>Счёт</th>
-            <th>Статус</th>
-        </tr>
+    <h1>Список матчей</h1>
+    <ul>
         {% for match in matches %}
-        <tr>
-            <td>{{ match.home }}</td>
-            <td>{{ match.away }}</td>
-            <td>{{ match.score }}</td>
-            <td>{{ match.status }}</td>
-        </tr>
+            <li>{{ match.home }} vs {{ match.away }} — {{ match.score }} ({{ match.status }})</li>
         {% endfor %}
-    </table>
+    </ul>
 </body>
 </html>
