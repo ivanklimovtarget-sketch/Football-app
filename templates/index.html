@@ -4,25 +4,54 @@
     <meta charset="UTF-8">
     <title>Прошедшие матчи</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-        th { background: #f2f2f2; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background: #f2f2f2;
+        }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .pagination a {
+            padding: 8px 12px;
+            margin: 0 5px;
+            background: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .pagination a:hover {
+            background: #0056b3;
+        }
+        .disabled {
+            background: #ccc;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
+
     <h2>Прошедшие матчи</h2>
-    <p>Последнее обновление: {{ matches[0][0] if matches else "нет данных" }}</p>
+    <p>Последнее обновление:</p>
 
     <table>
         <tr>
             <th>Дата</th>
             <th>Команда A</th>
             <th>Команда B</th>
-            <th>Итог</th>
-            <th>Total линия</th>
-            <th>Фора (дом)</th>
-            <th>ОЗ</th>
+            <th>Счет</th>
         </tr>
         {% for m in matches %}
         <tr>
@@ -30,24 +59,21 @@
             <td>{{ m[1] }}</td>
             <td>{{ m[2] }}</td>
             <td>{{ m[3] }} : {{ m[4] }}</td>
-            <td>{{ m[5] }}</td>
-            <td>{{ m[6] }}</td>
-            <td>{{ m[7] }}</td>
         </tr>
         {% endfor %}
     </table>
 
-    <br>
-    <h3>Подбор по коэффициентам</h3>
-    <form>
-        Линия тотала: <input type="text" placeholder="напр. 2.5"><br>
-        Кэф ТБ: <input type="text" placeholder="1.95">
-        Кэф ТМ: <input type="text" placeholder="1.90"><br>
-        Фора (дом): <input type="text" placeholder="-0.5">
-        Кэф на фору: <input type="text" placeholder="1.85"><br>
-        Кэф ОЗ Да: <input type="text" placeholder="1.70">
-        Кэф ОЗ Нет: <input type="text" placeholder="2.10"><br><br>
-        <button type="submit">Посчитать по истории</button>
-    </form>
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="/?page={{ page-1 }}">⬅ Назад</a>
+        {% else %}
+            <a class="disabled">⬅ Назад</a>
+        {% endif %}
+
+        <span>Страница {{ page }}</span>
+
+        <a href="/?page={{ page+1 }}">Вперёд ➡</a>
+    </div>
+
 </body>
 </html>
