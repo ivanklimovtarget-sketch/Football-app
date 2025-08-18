@@ -1,71 +1,110 @@
 import requests
 import sqlite3
 from datetime import datetime, timedelta
+from flask import Flask, render_template, jsonify
 
-API_KEY = "ТВОЙ_API_КЛЮЧ"   # вставь сюда свой ключ
-DB_FILE = "matches.db"
+app = Flask(__name__)
 
-# Создание таблицы, если нет
+DB_NAME = "matches.db"
+
+# создаём таблицу, если её ещё нет
 def init_db():
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS matches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            game_id TEXT,
-            date TEXT,
-            home_team TEXT,
-            away_team TEXT,
-            status TEXT
-        )
-    ''')
+    c.execute('''CREATE TABLE IF NOT EXISTS matches (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT,
+                    team_a TEXT,
+                    team_b TEXT,
+                    halftime TEXT,
+                    fulltime TEXT,
+                    total_line TEXT,
+                    handicap TEXT,
+                    btts TEXT,
+                    goals INTEGER
+                )''')
     conn.commit()
     conn.close()
 
-# Сохраняем матч в базу
-def save_match(game_id, date, home, away, status):
-    conn = sqlite3.connect(DB_FILE)
+# функция загрузки матчей из API
+def fetch_matches():
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute('''
-        INSERT OR IGNORE INTO matches (game_id, date, home_team, away_team, status)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (game_id, date, home, away, status))
+
+    today = datetime.today().date()
+
+    for i in range(180):  # 180 дней назад
+        date = today - timedelta(days=i)
+        url = f"https://api-football-v1.p.rapidapi.com/v3/fixtures?date={date}"
+
+        headers = {
+            "x-rapidapi-key": "YOUR_API_KEY",  # замени на свой ключ
+            "x-rapidapi-host": "api-football-v1.p.rapidapi.com"
+        }
+
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code != 200:
+                print(f"Ошибка {r.status_code} при запросе {date}")
+                continue
+
+            data = r.json()
+            if "response" not in data:
+                continue
+
+            for match in data["response"]:
+                team_a = match["teams"]["home"]["name"]
+                team_b = match["teams"]["away"]["name"]
+                halftime = match["score"]["halftime"]["home"], match["score"]["halftime"]["away"]
+                fulltime = match["score"]["fulltime"]["home"], match["score"]["fulltime"]["away"]
+                goals = (fulltime[0] or 0) + (fulltime[1] or 0)
+
+                # для простоты коэффициенты оставим пустыми
+                c.execute('''INSERT INTO matches (date, team_a, team_b, halftime, fulltime, total_line, handicap, btts, goals)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                          (str(date), team_a, team_b,
+                           f"{halftime[0]}-{halftime[1]}",
+                           f"{fulltime[0]}-{fulltime[1]}",
+                           "", "", "", goals))
+
+        except Exception as e:
+            print(f"Ошибка при обработке {date}: {e}")
+            continue
+
     conn.commit()
     conn.close()
 
-# Получение матчей за 1 день
-def fetch_by_date(day):
-    url = f"https://api.sportsdata.io/v4/soccer/scores/json/GamesByDate/{day}?key={API_KEY}"
-    response = requests.get(url)
+# маршрут главной страницы
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-    try:
-        data = response.json()
-    except Exception as e:
-        print(f"Ошибка парсинга JSON за {day}: {e}")
-        return
+# API для отдачи матчей
+@app.route("/api/matches")
+def get_matches():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT date, team_a, team_b, halftime, fulltime, total_line, handicap, btts, goals FROM matches ORDER BY date DESC")
+    rows = c.fetchall()
+    conn.close()
 
-    if not isinstance(data, list):
-        print(f"⚠ API вернуло не список за {day}: {data}")
-        return
+    matches = []
+    for row in rows:
+        matches.append({
+            "date": row[0],
+            "team_a": row[1],
+            "team_b": row[2],
+            "halftime": row[3],
+            "fulltime": row[4],
+            "total_line": row[5],
+            "handicap": row[6],
+            "btts": row[7],
+            "goals": row[8]
+        })
 
-    for m in data:
-        if isinstance(m, dict):
-            game_id = m.get("GameId")
-            home = m.get("HomeTeamName")
-            away = m.get("AwayTeamName")
-            status = m.get("Status")
-
-            print(f"{day}: {home} vs {away} ({status})")
-            save_match(game_id, day, home, away, status)
-
-# Получение матчей за последние N дней
-def fetch_history(days=180):
-    today = datetime.today()
-    for i in range(days):
-        day = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-        print(f"Загружаю: {day}")
-        fetch_by_date(day)
+    return jsonify(matches)
 
 if __name__ == "__main__":
     init_db()
-    fetch_history(180)   # загружаем полгода назад
+    fetch_matches()
+    app.run(host="0.0.0.0", port=5000)
