@@ -4,7 +4,7 @@ import requests
 app = Flask(__name__)
 
 API_KEY = "ТВОЙ_API_KEY"  # 8bd7548e336c4f338735954ad91ae239вставь сюда ключ
-BASE_URL = https://api.football-data.org/v4/competitions/PL/matches
+BASE_URL = "https://api.football-data.org/v4/competitions/PL/matches"
 
 def get_matches():
     headers = {"X-Auth-Token": API_KEY}
