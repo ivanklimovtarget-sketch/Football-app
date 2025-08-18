@@ -1,108 +1,84 @@
 import requests
 import sqlite3
-from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify
+import datetime
+import time
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
-DB_NAME = "matches.db"
+DB_FILE = "matches.db"
 
-# создаём таблицу, если её ещё нет
+# создаем таблицу (если её нет)
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS matches (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    date TEXT,
-                    team_a TEXT,
-                    team_b TEXT,
-                    halftime TEXT,
-                    fulltime TEXT,
-                    total_line TEXT,
-                    handicap TEXT,
-                    btts TEXT,
-                    goals INTEGER
-                )''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS matches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT,
+            team_a TEXT,
+            team_b TEXT,
+            score_half TEXT,
+            score_final TEXT,
+            total_line REAL,
+            handicap REAL,
+            both_to_score TEXT,
+            goals_sum INTEGER
+        )
+    ''')
     conn.commit()
     conn.close()
 
-# функция загрузки матчей из API
+# сохраняем матч в базу
+def save_match(date, team_a, team_b, score_half, score_final, total_line, handicap, both_to_score, goals_sum):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO matches (date, team_a, team_b, score_half, score_final, total_line, handicap, both_to_score, goals_sum)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (date, team_a, team_b, score_half, score_final, total_line, handicap, both_to_score, goals_sum))
+    conn.commit()
+    conn.close()
+
+# получаем данные с API
 def fetch_matches():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
+    today = datetime.date.today()
+    days_back = 180  # полгода назад
+    for i in range(days_back):
+        date = today - datetime.timedelta(days=i)
+        date_str = date.strftime("%Y-%m-%d")
 
-    today = datetime.today().date()
-
-    for i in range(180):  # 180 дней назад
-        date = today - timedelta(days=i)
-        url = f"https://api-football-v1.p.rapidapi.com/v3/fixtures?date={date}"
-
-        headers = {
-            "x-rapidapi-key": "YOUR_API_KEY",  # замени на свой ключ
-            "x-rapidapi-host": "api-football-v1.p.rapidapi.com"
-        }
-
+        url = f"https://api.someservice.com/matches?date={date_str}"  # твой API
         try:
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code != 200:
-                print(f"Ошибка {r.status_code} при запросе {date}")
-                continue
-
-            data = r.json()
-            if "response" not in data:
-                continue
-
-            for match in data["response"]:
-                team_a = match["teams"]["home"]["name"]
-                team_b = match["teams"]["away"]["name"]
-                halftime = match["score"]["halftime"]["home"], match["score"]["halftime"]["away"]
-                fulltime = match["score"]["fulltime"]["home"], match["score"]["fulltime"]["away"]
-                goals = (fulltime[0] or 0) + (fulltime[1] or 0)
-
-                # для простоты коэффициенты оставим пустыми
-                c.execute('''INSERT INTO matches (date, team_a, team_b, halftime, fulltime, total_line, handicap, btts, goals)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                          (str(date), team_a, team_b,
-                           f"{halftime[0]}-{halftime[1]}",
-                           f"{fulltime[0]}-{fulltime[1]}",
-                           "", "", "", goals))
-
+            response = requests.get(url, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                for match in data.get("matches", []):
+                    save_match(
+                        date_str,
+                        match["team_a"],
+                        match["team_b"],
+                        match.get("score_half", ""),
+                        match.get("score_final", ""),
+                        match.get("total_line", 0),
+                        match.get("handicap", 0),
+                        match.get("both_to_score", ""),
+                        match.get("goals_sum", 0)
+                    )
+            else:
+                print(f"Нет данных за {date_str}")
         except Exception as e:
-            print(f"Ошибка при обработке {date}: {e}")
-            continue
+            print(f"Ошибка при загрузке {date_str}: {e}")
+        time.sleep(1)  # чтобы API не заблокировал
 
-    conn.commit()
-    conn.close()
-
-# маршрут главной страницы
 @app.route("/")
 def index():
-    return render_template("index.html")
-
-# API для отдачи матчей
-@app.route("/api/matches")
-def get_matches():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT date, team_a, team_b, halftime, fulltime, total_line, handicap, btts, goals FROM matches ORDER BY date DESC")
-    rows = c.fetchall()
+    c.execute("SELECT * FROM matches ORDER BY date DESC LIMIT 50")
+    matches = c.fetchall()
     conn.close()
-
-    matches = []
-    for row in rows:
-        matches.append({
-            "date": row[0],
-            "team_a": row[1],
-            "team_b": row[2],
-            "halftime": row[3],
-            "fulltime": row[4],
-            "total_line": row[5],
-            "handicap": row[6],
-            "btts": row[7],
-            "goals": row[8]
-        })
-
-    return jsonify(matches)
+    return render_template("index.html", matches=matches)
 
 if __name__ == "__main__":
     init_db()
