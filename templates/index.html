@@ -23,7 +23,7 @@
         <ul>
             {% for match in matches %}
                 <li>
-                    {{ match.utcDate[:10] }} — 
+                    {{ match["utcDate"][:10] }}
                     {{ match.teams.home.name }} vs {{ match.teams.away.name }}
                     ({{ match.score.fullTime.home }} : {{ match.score.fullTime.away }})
                 </li>
