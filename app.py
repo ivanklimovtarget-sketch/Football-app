@@ -15,8 +15,6 @@ def fixtures(day, league=39, season=2025):
 
 @app.route("/")
 def index():
-    @app.route("/")
-def index():
     # Берём дату из параметра запроса (?date=2025-08-18),
     # если её нет, то используем сегодняшнюю
     date = request.args.get("date")
