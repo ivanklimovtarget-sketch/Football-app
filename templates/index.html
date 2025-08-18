@@ -5,30 +5,45 @@
     <title>Футбольные матчи</title>
 </head>
 <body>
-    <h1>Список матчей</h1>
+    <h1>Футбольные матчи (последние 6 месяцев)</h1>
+
+    <form method="get" action="/">
+        <label for="competition">Выберите турнир:</label>
+        <select name="competition" id="competition" onchange="this.form.submit()">
+            <option value="">Все турниры</option>
+            {% for comp in competitions %}
+                <option value="{{ comp.id }}" {% if selected_competition == comp.id|string %}selected{% endif %}>
+                    {{ comp.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
 
     {% if matches %}
         <ul>
-        {% for match in matches %}
-            <li>
-                <strong>{{ match['homeTeam']['name'] }}</strong> 
-                vs 
-                <strong>{{ match['awayTeam']['name'] }}</strong><br>
-
-                🕒 {{ match['utcDate'] }} <br>
-
-                {% if match['score'] and match['score']['fullTime'] %}
-                    ⚽ Счёт: {{ match['score']['fullTime']['home'] }} - {{ match['score']['fullTime']['away'] }}
-                {% else %}
-                    ⚽ Счёт пока недоступен
-                {% endif %}
-                <br><br>
-            </li>
-        {% endfor %}
+            {% for match in matches %}
+                <li>
+                    {{ match.utcDate[:10] }} — 
+                    {{ match.teams.home.name }} vs {{ match.teams.away.name }}
+                    ({{ match.score.fullTime.home }} : {{ match.score.fullTime.away }})
+                </li>
+            {% endfor %}
         </ul>
-    {% else %}
-        <p>Нет доступных матчей.</p>
-    {% endif %}
 
+        <!-- Пагинация -->
+        <div>
+            {% if page > 1 %}
+                <a href="/?competition={{ selected_competition }}&page={{ page - 1 }}">Предыдущая</a>
+            {% endif %}
+
+            <span>Страница {{ page }}</span>
+
+            {% if has_next %}
+                <a href="/?competition={{ selected_competition }}&page={{ page + 1 }}">Следующая</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <p>Нет данных за последние полгода.</p>
+    {% endif %}
 </body>
 </html>
