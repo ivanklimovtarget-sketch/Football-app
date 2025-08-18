@@ -1,52 +1,50 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
-  <head>
-    <meta charset="utf-8">
+<head>
+    <meta charset="UTF-8">
     <title>Футбольные матчи</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <style>
-      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px}
-      h1{margin:0 0 16px}
-      table{border-collapse:collapse;width:100%}
-      th,td{border:1px solid #ddd;padding:8px}
-      th{background:#f4f4f4;text-align:left}
-      .muted{color:#666}
-    </style>
-  </head>
-  <body>
-    <h1>Футбольные матчи</h1>
+</head>
+<body>
+    <h1>Футбольные матчи (последние 6 месяцев)</h1>
 
-    {% if matches and matches|length %}
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Дата (UTC)</th>
-            <th>Хозяева</th>
-            <th>Гости</th>
-            <th>Счёт</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in matches %}
-            <tr>
-              <td>{{ m.id or "-" }}</td>
-              <td>{{ m.date or "-" }}</td>
-              <td>{{ m.home_team or "-" }}</td>
-              <td>{{ m.away_team or "-" }}</td>
-              <td>
-                {% if m.home_score is not none and m.away_score is not none %}
-                  {{ m.home_score }} : {{ m.away_score }}
-                {% else %}
-                  <span class="muted">—</span>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <form method="get" action="/">
+        <label for="competition">Выберите турнир:</label>
+        <select name="competition" id="competition" onchange="this.form.submit()">
+            <option value="">Все турниры</option>
+            {% for code, name in competitions.items() %}
+                <option value="{{ code }}" {% if code == current_competition %}selected{% endif %}>
+                    {{ name }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if matches %}
+        <ul>
+            {% for match in matches %}
+                <li>
+                    {{ match['homeTeam']['name'] }} vs {{ match['awayTeam']['name'] }}
+                    — {{ match['utcDate'] }}
+                    {% if match['competition'] %}
+                        ({{ match['competition']['name'] }})
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+
+        <div>
+            {% if page > 1 %}
+                <a href="/?page={{ page - 1 }}{% if current_competition %}&competition={{ current_competition }}{% endif %}">Назад</a>
+            {% endif %}
+
+            Страница {{ page }} из {{ total_pages }}
+
+            {% if page < total_pages %}
+                <a href="/?page={{ page + 1 }}{% if current_competition %}&competition={{ current_competition }}{% endif %}">Вперёд</a>
+            {% endif %}
+        </div>
     {% else %}
-      <p class="muted">Нет данных. Попробуйте обновить позже.</p>
+        <p>Нет данных за последние полгода.</p>
     {% endif %}
-  </body>
+</body>
 </html>
