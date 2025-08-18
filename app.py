@@ -1,68 +1,102 @@
-import os
 from flask import Flask, render_template, request
 import requests
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-# ⚽ ТВОЙ API ключ ВСТАВЬ СЮДА
-API_KEY = "8bd7548e336c4f338735954ad912..."   # <-- замени на свой ключ
-headers = {"X-Auth-Token": API_KEY}
+# <-- вставь свой ключ сюда один раз -->
+API_TOKEN = "8bd7548e336c4f338735954ad91ae239"
 
-# Доступные турниры
-COMPETITIONS = {
-    "PL": "Английская Премьер-лига",
-    "PD": "Ла Лига (Испания)",
-    "SA": "Серия А (Италия)",
-    "BL1": "Бундеслига (Германия)",
-    "FL1": "Лига 1 (Франция)",
-    "CL": "Лига Чемпионов"
-}
+# Какие турниры берём (можешь расширять список)
+COMP_CODES = ["PL", "PD", "SA", "BL1", "FL1", "CL"]  # АПЛ, Ла Лига, Серия A, Бундеслига, Лига 1, ЛЧ
 
-def fetch_matches(page, competition=None, page_size=20):
-    """Забираем матчи за последние полгода"""
-    today = datetime.today()
-    date_from = (today - timedelta(days=180)).strftime("%Y-%m-%d")
-    date_to = today.strftime("%Y-%m-%d")
+def fetch_matches_last_6_months():
+    """Собираем матчи за последние 6 месяцев и нормализуем поля,
+    чтобы в шаблоне не было ошибок вида 'dict object has no attribute ...'."""
+    headers = {"X-Auth-Token": API_TOKEN}
+    today = datetime.utcnow().date()
+    date_from = (today - timedelta(days=180)).isoformat()
+    date_to = today.isoformat()
 
-    params = {
-        "dateFrom": date_from,
-        "dateTo": date_to,
-    }
+    raw = []
+    for code in COMP_CODES:
+        url = f"https://api.football-data.org/v4/competitions/{code}/matches"
+        params = {"dateFrom": date_from, "dateTo": date_to}
+        try:
+            r = requests.get(url, headers=headers, params=params, timeout=20)
+            if r.status_code == 200:
+                raw.extend(r.json().get("matches", []))
+            else:
+                # просто пропускаем проблемный турнир
+                continue
+        except Exception:
+            continue
 
-    if competition:
-        url = f"https://api.football-data.org/v4/competitions/{competition}/matches"
-    else:
-        url = "https://api.football-data.org/v4/matches"
+    # Нормализация — оставляем только нужные, с дефолтами
+    norm = []
+    for m in raw:
+        comp_name = (m.get("competition") or {}).get("name") or ""
+        utc = m.get("utcDate") or ""
+        home = (m.get("homeTeam") or {}).get("name") or ""
+        away = (m.get("awayTeam") or {}).get("name") or ""
+        score_ft = (m.get("score") or {}).get("fullTime") or {}
+        sh = score_ft.get("home")
+        sa = score_ft.get("away")
+        status = m.get("status") or ""
 
-    response = requests.get(url, headers=headers, params=params)
+        if not utc or not home or not away:
+            continue
 
-    if response.status_code != 200:
-        print("Ошибка запроса:", response.text)
-        return []
+        norm.append({
+            "date": utc[:10],
+            "competition": comp_name,
+            "home": home,
+            "away": away,
+            "score_home": "–" if sh is None else sh,
+            "score_away": "–" if sa is None else sa,
+            "status": status
+        })
 
-    data = response.json()
-    matches = data.get("matches", [])
+    # Сортировка от новых к старым
+    norm.sort(key=lambda x: x["date"], reverse=True)
+    return norm
 
-    # Пагинация по 20 матчей
-    start = (page - 1) * page_size
-    end = start + page_size
-    return matches[start:end]
 
 @app.route("/")
 def index():
-    page = int(request.args.get("page", 1))
-    competition = request.args.get("competition")
+    tournament = request.args.get("tournament", "all")
+    try:
+        page = int(request.args.get("page", 1))
+        if page < 1:
+            page = 1
+    except ValueError:
+        page = 1
+    per_page = 20
 
-    matches = fetch_matches(page, competition)
+    matches = fetch_matches_last_6_months()
+
+    tournaments = sorted({m["competition"] for m in matches if m["competition"]})
+
+    if tournament != "all":
+        matches = [m for m in matches if m["competition"] == tournament]
+
+    total = len(matches)
+    start = (page - 1) * per_page
+    end = start + per_page
+    matches_page = matches[start:end]
+    total_pages = (total + per_page - 1) // per_page if total else 1
 
     return render_template(
         "index.html",
-        matches=matches,
-        competitions=COMPETITIONS,
-        current_competition=competition,
-        page=page
+        matches=matches_page,
+        page=page,
+        per_page=per_page,
+        total=total,
+        total_pages=total_pages,
+        tournament=tournament,
+        tournaments=tournaments
     )
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
