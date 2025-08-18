@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request
+from flask import Flask, render_template, request
 import os, requests, datetime as dt
 
 API_KEY = os.environ.get("API_FOOTBALL_KEY", "")
