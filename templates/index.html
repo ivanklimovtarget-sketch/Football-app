@@ -5,46 +5,30 @@
     <title>Футбольные матчи</title>
 </head>
 <body>
-    <h1>Футбольные матчи (последние 6 месяцев)</h1>
-
-    <form method="get" action="/">
-        <label for="competition">Выберите турнир:</label>
-        <select name="competition" id="competition" onchange="this.form.submit()">
-            <option value="">Все турниры</option>
-            {% for code, name in competitions.items() %}
-                <option value="{{ code }}" {% if code == current_competition %}selected{% endif %}>
-                    {{ name }}
-                </option>
-            {% endfor %}
-        </select>
-    </form>
+    <h1>Список матчей</h1>
 
     {% if matches %}
         <ul>
-            {% for match in matches %}
-                <li>
-                    {{ match['homeTeam']['name'] }} vs {{ match['awayTeam']['name'] }}
-                    — {{ match['utcDate'] }}
-                    {% if match['competition'] %}
-                        ({{ match['competition']['name'] }})
-                    {% endif %}
-                </li>
-            {% endfor %}
+        {% for match in matches %}
+            <li>
+                <strong>{{ match['homeTeam']['name'] }}</strong> 
+                vs 
+                <strong>{{ match['awayTeam']['name'] }}</strong><br>
+
+                🕒 {{ match['utcDate'] }} <br>
+
+                {% if match['score'] and match['score']['fullTime'] %}
+                    ⚽ Счёт: {{ match['score']['fullTime']['home'] }} - {{ match['score']['fullTime']['away'] }}
+                {% else %}
+                    ⚽ Счёт пока недоступен
+                {% endif %}
+                <br><br>
+            </li>
+        {% endfor %}
         </ul>
-
-        <div>
-            {% if page > 1 %}
-                <a href="/?page={{ page - 1 }}{% if current_competition %}&competition={{ current_competition }}{% endif %}">Назад</a>
-            {% endif %}
-
-            Страница {{ page }} из {{ total_pages }}
-
-            {% if page < total_pages %}
-                <a href="/?page={{ page + 1 }}{% if current_competition %}&competition={{ current_competition }}{% endif %}">Вперёд</a>
-            {% endif %}
-        </div>
     {% else %}
-        <p>Нет данных за последние полгода.</p>
+        <p>Нет доступных матчей.</p>
     {% endif %}
+
 </body>
 </html>
