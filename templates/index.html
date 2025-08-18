@@ -40,7 +40,7 @@
                     <option>Нет</option>
                 </select>
             </td>
-            <td>{{ m.score_home + m.score_away }}</td>
+            <td>{{ m['score_home'] }} - {{ m['score_away'] }}</td>
         </tr>
         {% endfor %}
     </table>
