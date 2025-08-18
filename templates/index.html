@@ -5,45 +5,34 @@
     <title>Футбольные матчи</title>
 </head>
 <body>
-    <h1>Футбольные матчи (последние 6 месяцев)</h1>
-
-    <form method="get" action="/">
-        <label for="competition">Выберите турнир:</label>
-        <select name="competition" id="competition" onchange="this.form.submit()">
-            <option value="">Все турниры</option>
-            {% for comp in competitions %}
-                <option value="{{ comp.id }}" {% if selected_competition == comp.id|string %}selected{% endif %}>
-                    {{ comp.name }}
-                </option>
-            {% endfor %}
-        </select>
-    </form>
+    <h1>Футбольные матчи за последние полгода</h1>
 
     {% if matches %}
         <ul>
             {% for match in matches %}
                 <li>
-                    {{ match["utcDate"][:10] }}
-                    {{ match.teams.home.name }} vs {{ match.teams.away.name }}
-                    ({{ match.score.fullTime.home }} : {{ match.score.fullTime.away }})
+                    {{ match.get("homeTeam", {}).get("name", "Неизвестно") }}
+                    vs
+                    {{ match.get("awayTeam", {}).get("name", "Неизвестно") }}
+                    —
+                    {{ match.get("utcDate", "нет даты")[:10] }}
                 </li>
             {% endfor %}
         </ul>
 
-        <!-- Пагинация -->
         <div>
             {% if page > 1 %}
-                <a href="/?competition={{ selected_competition }}&page={{ page - 1 }}">Предыдущая</a>
+                <a href="/?page={{ page-1 }}">Назад</a>
             {% endif %}
 
-            <span>Страница {{ page }}</span>
+            <span>Страница {{ page }} из {{ total_pages }}</span>
 
-            {% if has_next %}
-                <a href="/?competition={{ selected_competition }}&page={{ page + 1 }}">Следующая</a>
+            {% if page < total_pages %}
+                <a href="/?page={{ page+1 }}">Вперёд</a>
             {% endif %}
         </div>
     {% else %}
-        <p>Нет данных за последние полгода.</p>
+        <p>Нет матчей для отображения.</p>
     {% endif %}
 </body>
 </html>
