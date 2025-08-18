@@ -1,4 +1,13 @@
-from flask import Flask, render_template
+from flask import import sys
+
+# Перехват всех ошибок и вывод в консоль
+def log_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    print("⚠️ Поймана ошибка:", exc_value, file=sys.stderr)
+
+sys.excepthook = log_exception
 import requests
 
 app = Flask(__name__)
@@ -39,5 +48,4 @@ def index():
 import os
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
