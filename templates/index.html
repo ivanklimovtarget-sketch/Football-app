@@ -3,13 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <title>Футбольные матчи</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f9;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #222;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 80%;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background: #222;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        .status {
+            font-size: 14px;
+            color: gray;
+        }
+    </style>
 </head>
 <body>
-    <h1>Список матчей</h1>
-    <ul>
+    <h1>⚽ Список матчей</h1>
+    <table>
+        <tr>
+            <th>Домашняя команда</th>
+            <th>Гости</th>
+            <th>Счёт</th>
+            <th>Статус</th>
+        </tr>
         {% for match in matches %}
-            <li>{{ match.home }} vs {{ match.away }} — {{ match.score }} ({{ match.status }})</li>
+        <tr>
+            <td>{{ match.home }}</td>
+            <td>{{ match.away }}</td>
+            <td>{{ match.score }}</td>
+            <td class="status">{{ match.status }}</td>
+        </tr>
         {% endfor %}
-    </ul>
+    </table>
 </body>
 </html>
