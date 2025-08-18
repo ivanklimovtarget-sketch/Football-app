@@ -15,15 +15,17 @@ def fixtures(day, league=39, season=2025):
 
 @app.route("/")
 def index():
-    day = request.args.get("date", dt.date.today().isoformat())
-    rows = []
-    for m in fixtures(day):
-        home = m["teams"]["home"]["name"]
-        away = m["teams"]["away"]["name"]
-        time = m["fixture"]["date"]
-        rows.append(f"{time}: {home} vs {away}")
-    html = "<h1>Матчи</h1><p>?date=YYYY-MM-DD</p><ul>" + "".join(f"<li>{x}</li>" for x in rows) + "</ul>"
-    return render_template_string(html)
+    @app.route("/")
+def index():
+    # Берём дату из параметра запроса (?date=2025-08-18),
+    # если её нет, то используем сегодняшнюю
+    date = request.args.get("date")
+    if not date:
+        date = dt.datetime.today().strftime("%Y-%m-%d")
+
+    matches = fixtures(date)
+
+    return render_template("index.html", matches=matches, date=date)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
