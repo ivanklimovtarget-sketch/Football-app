@@ -1,81 +1,94 @@
+from flask import Flask, render_template
 import sqlite3
 import requests
-import time
-from threading import Thread
-from flask import Flask, render_template
+from datetime import datetime, timedelta
+import os
 
 app = Flask(__name__)
 
-API_KEY = "8bd7548e336c4f338735954ad91ae239"
-DB_FILE = "matches.db"
+API_KEY = os.getenv("8bd7548e336c4f338735954ad91ae239")  # ключ из Render
+DB_NAME = "matches.db"
 
-# Создание базы если нет
+# Создание таблицы
 def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("""
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("""
         CREATE TABLE IF NOT EXISTS matches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY,
             date TEXT,
-            team_home TEXT,
-            team_away TEXT,
+            home_team TEXT,
+            away_team TEXT,
             score_home INTEGER,
-            score_away INTEGER,
-            total_line REAL,
-            handicap REAL,
-            bts TEXT
+            score_away INTEGER
         )
     """)
     conn.commit()
     conn.close()
 
-# Функция подгрузки матчей
-def fetch_matches():
-    while True:
-        try:
-            # пример запроса, можно менять дату на today
-            url = f"https://api.sportsdata.io/v4/soccer/scores/json/GamesByDate/2025-AUG-18?key={API_KEY}"
-            data = requests.get(url).json()
+# Подгрузка матчей по дате
+def fetch_by_date(date):
+    url = f"https://api.sportsdata.io/v4/soccer/scores/json/GamesByDate/{date}?key={API_KEY}"
+    try:
+        data = requests.get(url).json()
+    except:
+        return []
 
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
 
-            for m in data:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO matches
-                    (date, team_home, team_away, score_home, score_away, total_line, handicap, bts)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    m.get("Day"),
-                    m.get("HomeTeamName"),
-                    m.get("AwayTeamName"),
-                    m.get("HomeTeamScore"),
-                    m.get("AwayTeamScore"),
-                    2.5,    # пока фикс, потом можно динамически
-                    -0.5,   # тоже фикс
-                    "Да" if (m.get("HomeTeamScore") and m.get("AwayTeamScore")) else "Нет"
-                ))
+    for m in data:
+        match_id = m.get("GameId")
+        home = m.get("HomeTeamName")
+        away = m.get("AwayTeamName")
+        score_home = m.get("HomeTeamScore")
+        score_away = m.get("AwayTeamScore")
 
-            conn.commit()
-            conn.close()
-            print("✅ Матчи обновлены")
+        c.execute("""
+            INSERT OR IGNORE INTO matches (id, date, home_team, away_team, score_home, score_away)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (match_id, date, home, away, score_home, score_away))
 
-        except Exception as e:
-            print("❌ Ошибка обновления:", e)
+    conn.commit()
+    conn.close()
 
-        time.sleep(1800)  # каждые 30 минут
+# Подгрузка истории за N дней
+def fetch_history(days=180):
+    today = datetime.today()
+    for i in range(days):
+        day = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+        print("Загружаю:", day)
+        fetch_by_date(day)
+
+# Получить последние N матчей
+def get_last_matches(n=20):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT date, home_team, away_team, score_home, score_away FROM matches ORDER BY date DESC LIMIT ?", (n,))
+    matches = c.fetchall()
+    conn.close()
+    return matches
 
 @app.route("/")
 def index():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT date, team_home, team_away, score_home, score_away, total_line, handicap, bts FROM matches ORDER BY date DESC LIMIT 20")
-    matches = cursor.fetchall()
-    conn.close()
+    init_db()
+    # всегда проверяем новые матчи
+    today = datetime.today().strftime("%Y-%m-%d")
+    fetch_by_date(today)
 
+    matches = get_last_matches(20)
     return render_template("index.html", matches=matches)
 
 if __name__ == "__main__":
     init_db()
-    Thread(target=fetch_matches, daemon=True).start()
+    # если база пустая — загружаем историю за полгода
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM matches")
+    count = c.fetchone()[0]
+    conn.close()
+
+    if count == 0:
+        fetch_history(180)
+
     app.run(host="0.0.0.0", port=5000)
