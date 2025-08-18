@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Футбольное приложение</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        header {
+            background: #006600;
+            color: white;
+            padding: 20px;
+        }
+        main {
+            margin: 40px;
+        }
+        footer {
+            margin-top: 50px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>⚽ Добро пожаловать в Football App!</h1>
+    </header>
+
+    <main>
+        <p>Это стартовая страница твоего приложения 🚀</p>
+        <p>Здесь потом можно будет выводить расписание матчей, команды и многое другое.</p>
+    </main>
+
+    <footer>
+        <p>Football App © 2025</p>
+    </footer>
+</body>
+</html>
