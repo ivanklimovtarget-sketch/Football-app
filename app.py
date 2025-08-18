@@ -1,4 +1,6 @@
-from flask import import sys
+import sys
+import requests
+from flask import Flask, render_template, jsonify
 
 # Перехват всех ошибок и вывод в консоль
 def log_exception(exc_type, exc_value, exc_traceback):
@@ -8,13 +10,15 @@ def log_exception(exc_type, exc_value, exc_traceback):
     print("⚠️ Поймана ошибка:", exc_value, file=sys.stderr)
 
 sys.excepthook = log_exception
-import requests
 
+# Создаём Flask-приложение
 app = Flask(__name__)
 
-API_KEY = "ТВОЙ_API_KEY"  # 8bd7548e336c4f338735954ad91ae239вставь сюда ключ
-BASE_URL = "https://api.football-data.org/v4/competitions/PL/matches"
+# ⚠️ Вставь сюда свой ключ с football-data.org
+API_KEY = "ТВОЙ_API_KEY"
+BASE_URL = "https://api.football-data.org/v4/matches"
 
+# Функция для получения матчей
 def get_matches():
     headers = {"X-Auth-Token": API_KEY}
     response = requests.get(BASE_URL, headers=headers)
@@ -25,14 +29,14 @@ def get_matches():
         for match in data.get("matches", []):
             home = match["homeTeam"]["name"]
             away = match["awayTeam"]["name"]
-            score_home = match["score"]["fullTime"]["home"] if match["score"]["fullTime"]["home"] is not None else "-"
-            score_away = match["score"]["fullTime"]["away"] if match["score"]["fullTime"]["away"] is not None else "-"
+            score_home = match["score"]["fullTime"]["home"]
+            score_away = match["score"]["fullTime"]["away"]
             status = match["status"]
 
             matches.append({
                 "home": home,
                 "away": away,
-                "score": f"{score_home}:{score_away}",
+                "score": f"{score_home} : {score_away}",
                 "status": status
             })
         return matches
@@ -40,12 +44,12 @@ def get_matches():
         print("Ошибка API:", response.status_code, response.text)
         return []
 
+# Роут главной страницы
 @app.route("/")
 def index():
     matches = get_matches()
-    return render_template("index.html", matches=matches)
+    return jsonify(matches)  # пока отдаём в JSON для проверки
 
-import os
-
+# Точка входа
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
