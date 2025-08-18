@@ -1,1 +1,1 @@
-web: gunicorn app:app
+web: PYTHONUTF8=1 gunicorn app:app
