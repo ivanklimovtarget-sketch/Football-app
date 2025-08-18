@@ -1,79 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Прошедшие матчи</title>
+  <head>
+    <meta charset="utf-8">
+    <title>Футбольные матчи</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th, td {
-            border: 1px solid #333;
-            padding: 8px;
-            text-align: center;
-        }
-        th {
-            background: #f2f2f2;
-        }
-        .pagination {
-            margin-top: 20px;
-            text-align: center;
-        }
-        .pagination a {
-            padding: 8px 12px;
-            margin: 0 5px;
-            background: #007BFF;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-        .pagination a:hover {
-            background: #0056b3;
-        }
-        .disabled {
-            background: #ccc;
-            pointer-events: none;
-        }
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px}
+      h1{margin:0 0 16px}
+      table{border-collapse:collapse;width:100%}
+      th,td{border:1px solid #ddd;padding:8px}
+      th{background:#f4f4f4;text-align:left}
+      .muted{color:#666}
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <h1>Футбольные матчи</h1>
 
-    <h2>Прошедшие матчи</h2>
-    <p>Последнее обновление:</p>
-
-    <table>
-        <tr>
-            <th>Дата</th>
-            <th>Команда A</th>
-            <th>Команда B</th>
-            <th>Счет</th>
-        </tr>
-        {% for m in matches %}
-        <tr>
-            <td>{{ m[0] }}</td>
-            <td>{{ m[1] }}</td>
-            <td>{{ m[2] }}</td>
-            <td>{{ m[3] }} : {{ m[4] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <div class="pagination">
-        {% if page > 1 %}
-            <a href="/?page={{ page-1 }}">⬅ Назад</a>
-        {% else %}
-            <a class="disabled">⬅ Назад</a>
-        {% endif %}
-
-        <span>Страница {{ page }}</span>
-
-        <a href="/?page={{ page+1 }}">Вперёд ➡</a>
-    </div>
-
-</body>
+    {% if matches and matches|length %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Дата (UTC)</th>
+            <th>Хозяева</th>
+            <th>Гости</th>
+            <th>Счёт</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in matches %}
+            <tr>
+              <td>{{ m.id or "-" }}</td>
+              <td>{{ m.date or "-" }}</td>
+              <td>{{ m.home_team or "-" }}</td>
+              <td>{{ m.away_team or "-" }}</td>
+              <td>
+                {% if m.home_score is not none and m.away_score is not none %}
+                  {{ m.home_score }} : {{ m.away_score }}
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">Нет данных. Попробуйте обновить позже.</p>
+    {% endif %}
+  </body>
 </html>
