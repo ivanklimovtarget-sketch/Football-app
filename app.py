@@ -14,8 +14,8 @@ sys.excepthook = log_exception
 # Создаём Flask-приложение
 app = Flask(__name__)
 
-# ⚠️ Вставь сюда свой ключ с football-data.org
-API_KEY = "ТВОЙ_API_KEY"
+# ⚠️ Вставь сюда свой API-ключ с football-data.org
+API_KEY = "8bd7548e336c4f338735954ad91ae239"
 BASE_URL = "https://api.football-data.org/v4/matches"
 
 # Функция для получения матчей
@@ -26,6 +26,7 @@ def get_matches():
     if response.status_code == 200:
         data = response.json()
         matches = []
+
         for match in data.get("matches", []):
             home = match["homeTeam"]["name"]
             away = match["awayTeam"]["name"]
@@ -41,15 +42,20 @@ def get_matches():
             })
         return matches
     else:
-        print("Ошибка API:", response.status_code, response.text)
         return []
 
-# Роут главной страницы
+# Главная страница (отдаём HTML)
 @app.route("/")
 def index():
     matches = get_matches()
-    return jsonify(matches)  # пока отдаём в JSON для проверки
+    return render_template("index.html", matches=matches)
 
-# Точка входа
+# API-эндпоинт (отдаём JSON)
+@app.route("/api/matches")
+def api_matches():
+    matches = get_matches()
+    return jsonify(matches)
+
+# Точка входа (для запуска на Render)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
