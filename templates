@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Футбольные матчи</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .match {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .match:last-child {
+            border-bottom: none;
+        }
+        .teams {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .time {
+            color: #555;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Футбольные матчи на {{ date }}</h1>
+    </header>
+    <div class="container">
+        {% if matches %}
+            {% for match in matches %}
+                <div class="match">
+                    <div class="teams">
+                        {{ match['teams']['home']['name'] }} vs {{ match['teams']['away']['name'] }}
+                    </div>
+                    <div class="time">
+                        Начало: {{ match['fixture']['date'] }}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>На сегодня матчей не найдено.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
