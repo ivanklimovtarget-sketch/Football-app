@@ -2,59 +2,84 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Футбольные матчи</title>
+    <title>Список матчей</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f4f4f9;
-            color: #333;
-            text-align: center;
-            padding: 20px;
+            margin: 20px;
         }
         h1 {
-            color: #222;
+            color: #333;
         }
         table {
-            margin: 20px auto;
+            width: 100%;
             border-collapse: collapse;
-            width: 80%;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 15px;
         }
         th, td {
-            padding: 12px 15px;
             border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
         }
         th {
-            background: #222;
-            color: white;
+            background-color: #f4f4f4;
         }
-        tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-        .status {
+        #updated {
+            margin-top: 10px;
             font-size: 14px;
-            color: gray;
+            color: #555;
         }
     </style>
+    <script>
+        async function updateMatches() {
+            const response = await fetch("/api/matches");
+            const matches = await response.json();
+
+            const tbody = document.getElementById("matches-body");
+            tbody.innerHTML = "";
+
+            matches.forEach(m => {
+                const row = `<tr>
+                    <td>${m.home}</td>
+                    <td>${m.away}</td>
+                    <td>${m.score}</td>
+                    <td>${m.status}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+
+            // Обновляем время
+            document.getElementById("updated").innerText =
+                "Последнее обновление: " + new Date().toLocaleTimeString();
+        }
+
+        // Обновление каждые 30 секунд
+        setInterval(updateMatches, 30000);
+        window.onload = updateMatches;
+    </script>
 </head>
 <body>
-    <h1>⚽ Список матчей</h1>
+    <h1>Список матчей</h1>
     <table>
-        <tr>
-            <th>Домашняя команда</th>
-            <th>Гости</th>
-            <th>Счёт</th>
-            <th>Статус</th>
-        </tr>
-        {% for match in matches %}
-        <tr>
-            <td>{{ match.home }}</td>
-            <td>{{ match.away }}</td>
-            <td>{{ match.score }}</td>
-            <td class="status">{{ match.status }}</td>
-        </tr>
-        {% endfor %}
+        <thead>
+            <tr>
+                <th>Дом</th>
+                <th>Гости</th>
+                <th>Счёт</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody id="matches-body">
+            {% for match in matches %}
+            <tr>
+                <td>{{ match.home }}</td>
+                <td>{{ match.away }}</td>
+                <td>{{ match.score }}</td>
+                <td>{{ match.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
+    <div id="updated">Последнее обновление: сейчас</div>
 </body>
 </html>
